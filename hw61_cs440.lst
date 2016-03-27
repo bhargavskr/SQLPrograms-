@@ -1,0 +1,162 @@
+sqlplus>@pl12
+sqlplus>-- Bhargav Sai Krishna, Ravuri
+sqlplus>-- CS440
+sqlplus>-- Assignment 6
+sqlplus>-- March 11, 2015
+sqlplus>
+sqlplus>
+sqlplus>set serveroutput on format TRUNCATED
+sqlplus>set linesize 140
+sqlplus>
+sqlplus>
+sqlplus>create or replace procedure Salary_Report is
+  2  	    v_today varchar2(50);
+  3  	    v_total number(7,2) default 0.0;
+  4  	    v_avg   number(7,2) default 0.0;
+  5  	    v_dtotal number(7,2) default 0.0;
+  6  	    v_davg number(7,2) default 0.0;
+  7  		v_len number(4)  default 0;
+  8  		v_st varchar2(50);
+  9  
+ 10  
+ 11  begin
+ 12  	     select to_char(sysdate,'fmDay, Month dd, YYYY') into v_today from dual;
+ 13  
+ 14  
+ 15  	    v_st:=v_today;
+ 16  	     v_len:=length(v_st);
+ 17  
+ 18  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 19  
+ 20  	     dbms_output.put_line(' ');
+ 21  	     v_st:='Regal Lager';
+ 22  	     v_len:=length(v_st);
+ 23  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 24  
+ 25  	      dbms_output.put_line(' ');
+ 26  	     v_st:='More Than a Great Brew - a Pallindrome';
+ 27  	     v_len:=length(v_st);
+ 28  
+ 29  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 30  
+ 31  
+ 32  	      dbms_output.put_line(' ');
+ 33  	       dbms_output.put_line(' ');
+ 34  v_st:=' Departmental Salary Report ';
+ 35  	     v_len:=length(v_st);
+ 36  
+ 37  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 38  
+ 39  
+ 40   dbms_output.put_line(' ');
+ 41  
+ 42   for c1_dept in (select deptno,dname from dept)  loop
+ 43  
+ 44  	     v_st:='Department: '||initcap(c1_dept.dname);
+ 45  	     v_len:=length(v_st);
+ 46  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 47  
+ 48  	     select sum(sal),avg(sal) into v_dtotal,v_davg from emp where deptno=c1_dept.deptno;
+ 49  --      select avg(sal) into v_davg from emp where deptno=c1_dept.deptno;
+ 50  		      for c2_emp in (select ename,sal,deptno from emp where deptno=c1_dept.deptno) loop
+ 51  	     -- fm is used to remove any blank padding, without fm the Salary values are displayed with blanks if first two digits are missing
+ 52  	     --      if c1_dept.deptno=c2_emp.deptno then
+ 53  						      v_st:=rpad(c2_emp.ename,7)||rpad(to_char(c2_emp.sal,'fm$9,99,999.00'),10);
+ 54  						      v_len:=length(v_st);
+ 55  						       dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 56  		       --   end if;
+ 57  	      end loop;
+ 58  
+ 59  	      v_st:='Total '||initcap(c1_dept.dname)||' salary: '||to_char(v_dtotal,'fm$9,99,999.00');
+ 60  	      v_len:=length(v_st);
+ 61  	      dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 62  
+ 63  	      v_st:='Average '||initcap(c1_dept.dname)||' salary: '||to_char(v_davg,'fm$9,99,999.00');
+ 64  	      v_len:=length(v_st);
+ 65  	      dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 66  
+ 67  	     dbms_output.put_line(' ');
+ 68  
+ 69  end loop;
+ 70  	     v_st:='Company Salaries:';
+ 71  	     v_len:=length(v_st);
+ 72  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 73  
+ 74  	     select sum(sal),avg(sal) into v_total,v_avg from emp;
+ 75  	     v_st:='Total Regal Lager salary: '||to_char(v_total,'fm$9,99,999.00');
+ 76  	     v_len:=length(v_st);
+ 77  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 78  
+ 79  
+ 80  --      select avg(sal) into v_avg from emp;
+ 81  	     v_st:='Average Regal Lager salary: '||to_char(v_avg,'fm$9,99,999.00');
+ 82  	     v_len:=length(v_st);
+ 83  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 84  	     dbms_output.put_line(' ');
+ 85  	     v_st:=' End of Report ';
+ 86  	     v_len:=length(v_st);
+ 87  	     dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 88  
+ 89  exception
+ 90  	      when no_data_found then
+ 91  	      v_st:=' Error in selecting department ';
+ 92  	      v_len:=length(v_st);
+ 93  	      dbms_output.put_line(lpad(v_st,70+(v_len/2)));
+ 94  	      raise;
+ 95  
+ 96  end Salary_Report;
+ 97  /
+
+Procedure created.
+
+sqlplus>
+sqlplus>
+sqlplus>execute Salary_Report
+                                                           Sunday, March 15, 2015
+
+                                                                 Regal Lager
+
+                                                   More Than a Great Brew - a Pallindrome
+
+
+                                                         Departmental Salary Report
+
+                                                           Department: Accounting
+                                                              CLARK  $2,450.00
+                                                              KING   $5,000.00
+                                                              MILLER $1,300.00
+                                                     Total Accounting salary: $8,750.00
+                                                    Average Accounting salary: $2,916.67
+
+                                                            Department: Research
+                                                              SMITH  $800.00
+                                                              JONES  $2,975.00
+                                                              SCOTT  $3,000.00
+                                                              ADAMS  $1,100.00
+                                                              FORD   $3,000.00
+                                                      Total Research salary: $10,875.00
+                                                     Average Research salary: $2,175.00
+
+                                                              Department: Sales
+                                                              ALLEN  $1,600.00
+                                                              WARD   $1,250.00
+                                                              MARTIN $1,250.00
+                                                              BLAKE  $2,850.00
+                                                              TURNER $1,500.00
+                                                              JAMES  $950.00
+                                                        Total Sales salary: $9,400.00
+                                                       Average Sales salary: $1,566.67
+
+                                                           Department: Operations
+                                                          Total Operations salary:
+                                                         Average Operations salary:
+
+                                                              Company Salaries:
+                                                    Total Regal Lager salary: $29,025.00
+                                                    Average Regal Lager salary: $2,073.21
+
+                                                                End of Report
+
+PL/SQL procedure successfully completed.
+
+sqlplus>spool off

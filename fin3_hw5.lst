@@ -1,0 +1,158 @@
+sqlplus>@cs440_hw5
+sqlplus>
+sqlplus>set echo on
+sqlplus>/*
+sqlplus>
+sqlplus>	Bhargav Sai Krishna, Ravuri
+sqlplus>	CS 440
+sqlplus>``	Assignment 5
+sqlplus>	February 13,2015
+sqlplus>*/
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 1a
+sqlplus>
+sqlplus>(select pname from sp join p using (p#) where lower(s#)='s1') union (select pname from sp join p using (p#) where lower(s#)='s2') union (select pname from sp join p using (p#) where lower(s#)='s4');
+PNAME
+----------
+hammer
+ladder
+pliers
+router
+stapler
+wrench
+
+6 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 1b
+sqlplus>
+sqlplus>(select pname from sp join p using (p#) where lower(s#)='s1') intersect (select pname from sp join p using (p#) where lower(s#)='s2') intersect (select pname from sp join p using (p#) where lower(s#)='s4');
+PNAME
+----------
+pliers
+stapler
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 2
+sqlplus>
+sqlplus>select sname from s where  exists (select p# from p where lower(color)='red' and p# not in (select p# from sp where s#=s.s#));
+SNAME
+-----
+jones
+adams
+clark
+henry
+
+sqlplus>
+sqlplus>-- Problem 3
+sqlplus>
+sqlplus>select sname from s where  exists ( select p# from p where lower(p#)='p5' and p# not in ( select p# from sp where s#=s.s#)) and exists (select p# from p where lower(p#)='p4' and p# in( select p# from sp where s#=s.s#));
+SNAME
+-----
+clark
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 4
+sqlplus>
+sqlplus>select sname from s where s# in (select nvl(s#,0) from sp where (p#,qty) in (select nvl(p#,0),nvl(max(qty),0) from sp x1 where qty!=(select max(qty) from sp where p#=x1.p# and qty is not null) and qty is not null group by p#) and qty is not null group by s# having count(*)=1);
+SNAME
+-----
+jones
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 5
+sqlplus>
+sqlplus>select sname from s where 2<=(select count(distinct p#) from sp where s#=s.s#) and not exists (select 1 from sp where lower(p#)='p3' and s#=s.s#);
+SNAME
+-----
+jones
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 6
+sqlplus>
+sqlplus>
+sqlplus>select z.sname,y1.pname,y2.pname,y3.pname from (( s z join (sp x1 join p y1 on x1.p#=y1.p#) on z.s#=x1.s#) join (sp x2 join p y2 on x2.p#=y2.p#) on  x1.s#=x2.s#) join (sp x3 join p y3 on x3.p#=y3.p#) on  x1.s#=x3.s# where x1.p#!=x2.p# and exists ( select 1 from sp x4 where x4.s#=x1.s# and x4.p#!=x2.p# and x4.p#!=x3.p#) and nvl(x1.qty,0)>= all (select nvl(qty,0) from sp where s#=x1.s#) and nvl(x2.qty,0)>=all(select nvl(qty,0) from sp where s#=x1.s# and qty!=x1.qty) and nvl(x3.qty,0)>= all(select nvl(qty,0) from sp where s#=x1.s# and qty!=x1.qty and qty!=x2.qty) and x1.p#!=x3.p# and x2.p#!=x3.p#;
+SNAME PNAME      PNAME      PNAME
+----- ---------- ---------- ----------
+smith wrench     ladder     pliers
+jones wrench     stapler    pliers
+clark stapler    pliers     router
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 7
+sqlplus>
+sqlplus>select sname,min(qty) from s x join sp y on x.s#=y.s# where 1<= ( select count(*) from sp where s#=x.s# and qty is not null  and qty > ( select max(qty)from sp  where qty is not null and lower(p#)='p2')) group by sname;
+SNAME   MIN(QTY)
+----- ----------
+clark        100
+smith        100
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 8
+sqlplus>break on sname
+sqlplus>
+sqlplus>select sname,pname,qty,(select max(qty) from sp y1 where y1.s#=y.s#) as maximum_qty_of_any_parts,(select max(qty) from sp y2 where y2.p#=y.p#) as maximum_qty_of_any_suppliers	from (s x left join sp y on x.s#=y.s#) left join p z on y.p#=z.p# order by sname;
+SNAME PNAME             QTY MAXIMUM_QTY_OF_ANY_PARTS MAXIMUM_QTY_OF_ANY_SUPPLIERS
+----- ---------- ---------- ------------------------ ----------------------------
+adams hammer            150                      150                          150
+clark pliers            120                      250                          200
+      router            100                      250                          150
+      stapler           250                      250                          250
+henry
+jones wrench            120                      120                          240
+      stapler           100                      120                          250
+      pliers                                     120                          200
+smith router            150                      240                          150
+      hammer            100                      240                          150
+      wrench            240                      240                          240
+      ladder            210                      240                          210
+      stapler           120                      240                          250
+      pliers            200                      240                          200
+
+14 rows selected.
+
+sqlplus>
+sqlplus>clear breaks
+sqlplus>-- Problem 9
+sqlplus>
+sqlplus>select ename,level  from emp where lower(job)!='analyst' and level!=1  start with lower(ename)='adams' connect by empno= prior mgr;
+ENAME           LEVEL
+---------- ----------
+JONES               3
+KING                4
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 10
+sqlplus>select lpad(' ',3*level)||ename||' ' ||(select ename from emp x1 where x1.empno=x.mgr)||' '|| (level-1) as Employee_Supervisor_level from emp x where lower(job)!='clerk' start with lower(job)='president'  connect by mgr=prior empno;
+EMPLOYEE_SUPERVISOR_LEVEL
+--------------------------------------------------------------------------------------------------------------------------------------------
+   KING  0
+      JONES KING 1
+         SCOTT JONES 2
+         FORD JONES 2
+      BLAKE KING 1
+         ALLEN BLAKE 2
+         WARD BLAKE 2
+         MARTIN BLAKE 2
+         TURNER BLAKE 2
+      CLARK KING 1
+
+10 rows selected.
+
+sqlplus>spool off

@@ -1,0 +1,180 @@
+sqlplus>@cs440_hw3
+sqlplus>
+sqlplus>set echo on;
+sqlplus>-- Bhargav Sai Krishna, Ravuri
+sqlplus>-- CS 440
+sqlplus>-- Assignment 3
+sqlplus>-- Feb 2, 2015
+sqlplus>
+sqlplus>-- Problem 1
+sqlplus>Select * from emp where lower(ename)='scott' or lower(ename)='turner';
+     EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM     DEPTNO
+---------- ---------- --------- ---------- --------- ---------- ---------- ----------
+      7788 SCOTT      ANALYST         7566 13-JUL-12       3000                    20
+      7844 TURNER     SALESMAN        7698 08-SEP-09       1500          0         30
+
+sqlplus>
+sqlplus>update emp set mgr=(select mgr from emp where lower(ename)='turner') where lower(ename)='scott';
+
+1 row updated.
+
+sqlplus>
+sqlplus>select * from emp where lower(ename)='scott' or lower(ename)='turner';
+     EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM     DEPTNO
+---------- ---------- --------- ---------- --------- ---------- ---------- ----------
+      7788 SCOTT      ANALYST         7698 13-JUL-12       3000                    20
+      7844 TURNER     SALESMAN        7698 08-SEP-09       1500          0         30
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>--select * from emp where lower(ename)='scott';
+sqlplus>
+sqlplus>-- Problem 2
+sqlplus>
+sqlplus>insert into dept (deptno,dname,loc) values (50,'PR','Morgantown');
+
+1 row created.
+
+sqlplus>
+sqlplus>select * from emp join dept using (deptno) where lower(dname)='research';
+    DEPTNO      EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM DNAME          LOC
+---------- ---------- ---------- --------- ---------- --------- ---------- ---------- -------------- -------------
+        20       7369 SMITH      CLERK           7902 17-DEC-08        800            RESEARCH       DALLAS
+        20       7566 JONES      MANAGER         7839 02-APR-09       2975            RESEARCH       DALLAS
+        20       7788 SCOTT      ANALYST         7566 13-JUL-12       3000            RESEARCH       DALLAS
+        20       7876 ADAMS      CLERK           7788 13-JUL-12       1100            RESEARCH       DALLAS
+        20       7902 FORD       ANALYST         7566 03-DEC-09       3000            RESEARCH       DALLAS
+
+sqlplus>
+sqlplus>update emp set deptno=(select deptno from dept where lower(dname)='pr') where deptno=(select deptno from dept where lower(dname)='research');
+
+5 rows updated.
+
+sqlplus>
+sqlplus>select * from emp join dept  using (deptno) where lower(dname)='pr';
+    DEPTNO      EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM DNAME          LOC
+---------- ---------- ---------- --------- ---------- --------- ---------- ---------- -------------- -------------
+        50       7369 SMITH      CLERK           7902 17-DEC-08        800            PR             Morgantown
+        50       7566 JONES      MANAGER         7839 02-APR-09       2975            PR             Morgantown
+        50       7788 SCOTT      ANALYST         7566 13-JUL-12       3000            PR             Morgantown
+        50       7876 ADAMS      CLERK           7788 13-JUL-12       1100            PR             Morgantown
+        50       7902 FORD       ANALYST         7566 03-DEC-09       3000            PR             Morgantown
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>-- Problem 3
+sqlplus>
+sqlplus>select * from emp where empno not in (select empno from emp where mgr=(select mgr from emp where lower(ename)='martin'));
+     EMPNO ENAME      JOB              MGR HIREDATE         SAL       COMM     DEPTNO
+---------- ---------- --------- ---------- --------- ---------- ---------- ----------
+      7839 KING       PRESIDENT            17-NOV-09       5000                    10
+      7782 CLARK      MANAGER         7839 09-JUN-09       2450                    10
+      7788 SCOTT      ANALYST         7566 13-JUL-12       3000                    20
+      7698 BLAKE      MANAGER         7839 01-MAY-09       2850                    30
+      7566 JONES      MANAGER         7839 02-APR-09       2975                    20
+      7934 MILLER     CLERK           7782 23-JAN-10       1300                    10
+      7902 FORD       ANALYST         7566 03-DEC-09       3000                    20
+      7369 SMITH      CLERK           7902 17-DEC-08        800                    20
+      7876 ADAMS      CLERK           7788 13-JUL-12       1100                    20
+
+9 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 4
+sqlplus>
+sqlplus>break on sname
+sqlplus>
+sqlplus>select sname,pname from s left join sp using (s#) left join p using (p#);
+SNAME PNAME
+----- ----------
+smith hammer
+      pliers
+      router
+      stapler
+      wrench
+      ladder
+jones pliers
+      stapler
+      wrench
+adams hammer
+clark pliers
+      router
+      stapler
+henry
+
+14 rows selected.
+
+sqlplus>
+sqlplus>clear breaks
+sqlplus>
+sqlplus>-- Problem 5
+sqlplus>
+sqlplus>--break on s#
+sqlplus>
+sqlplus>select distinct pname from  p join sp using (p#) where s#= any ( select s# from p join sp using (p#) where lower(pname)='stapler') and lower(pname)!='stapler';
+PNAME
+----------
+router
+ladder
+hammer
+pliers
+wrench
+
+sqlplus>
+sqlplus>--clear breaks
+sqlplus>
+sqlplus>-- Problem 6
+sqlplus>
+sqlplus>select pname from p where p# not in ( select p# from s join sp using (s#) where lower(city)='bonn');
+PNAME
+----------
+router
+hammer
+ladder
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 7
+sqlplus>
+sqlplus>select distinct x1.sname from ((s x1 join sp y1 using (s#)) join p z1 using (p#)) join ((s x2 join sp y2 using (s#)) join p z2 using (p#)) using (s#) where z1.city!=z2.city and exists (select 1 from ((s x3 join sp y3 using (s#)) join p z3 using (p#)) where x1.sname=x3.sname and z1.city!=z3.city and z2.city!=z3.city);
+SNAME
+-----
+jones
+clark
+smith
+
+sqlplus>
+sqlplus>-- Problem 8
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 9
+sqlplus>
+sqlplus>select dname from dept where deptno not in (select deptno from emp);
+DNAME
+--------------
+OPERATIONS
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 10
+sqlplus>
+sqlplus>select dname,ename,sal from dept d1 left join emp e1 using (deptno) where not exists (select 1 from dept d2 left join emp using (deptno) where e1.sal<sal and d1.dname=dname);
+DNAME          ENAME             SAL
+-------------- ---------- ----------
+ACCOUNTING     KING             5000
+RESEARCH       SCOTT            3000
+RESEARCH       FORD             3000
+SALES          BLAKE            2850
+OPERATIONS
+
+sqlplus>spoll off
+SP2-0042: unknown command "spoll off" - rest of line ignored.
+sqlplus>spool off

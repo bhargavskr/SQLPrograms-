@@ -1,0 +1,316 @@
+sqlplus>@hw9_cs440
+sqlplus>--bhargav Sai Krishna, Ravuri
+sqlplus>--CS 440
+sqlplus>--Assignment 9
+sqlplus>--April 13, 2015
+sqlplus>set serveroutput on
+sqlplus>set echo on
+sqlplus>
+sqlplus>
+sqlplus>drop table classes_ot;
+
+Table dropped.
+
+sqlplus>drop table student_plus;
+
+Table dropped.
+
+sqlplus>drop type classes_ref_ty;
+
+Type dropped.
+
+sqlplus>drop type classes_ty;
+
+Type dropped.
+
+sqlplus>drop table departments;
+
+Table dropped.
+
+sqlplus>drop procedure AddClass;
+
+Procedure dropped.
+
+sqlplus>drop procedure DeleteClass;
+
+Procedure dropped.
+
+sqlplus>create table departments(dept_name varchar2(10) constraint dept_pk_ot primary key deferrable initially immediate);
+
+Table created.
+
+sqlplus>insert into departments(dept_name) select dept_name from wv.departments;
+
+9 rows created.
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 1
+sqlplus>create or replace type classes_ty as object (CRN varchar2(5),Department varchar2(8),CourseTitle varchar2(25));
+  2  /
+
+Type created.
+
+sqlplus>
+sqlplus>--problem 2
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>create table classes_ot of classes_ty;
+
+Table created.
+
+sqlplus>
+sqlplus>alter table classes_ot add constraint crn_pk primary key (CRN) deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table classes_ot modify CourseTitle  constraint title_ot_nn not null  deferrable initially immediate constraint title_uq unique deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table classes_ot modify Department constraint dept_ot_nn not null deferrable initially immediate constraint dept_ot_fk references departments(dept_name) deferrable initially immediate;
+
+Table altered.
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--problem 3
+sqlplus>
+sqlplus>insert into classes_ot(CRN,Department,CourseTitle) select crn,department,title from wv.classes;
+
+10 rows created.
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 4
+sqlplus>
+sqlplus>create or replace type classes_ref_ty as table of ref classes_ty;
+  2  /
+
+Type created.
+
+sqlplus>--problem 5
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>create table student_plus(student# varchar2(11) constraint id_stu_plus_pk primary key deferrable initially immediate,student_name varchar2(10) constraint name_stu_plus_nn not null deferrable initially immediate,major varchar2(8) constraint major_stu_plus_nn not null deferrable initially immediate constraint major_stu_plus_fk references departments(dept_name) deferrable initially immediate,advisor varchar2(10) constraint advisor__stu_plus_nn not null deferrable initially immediate,enrolled classes_ref_ty) nested table enrolled store as enrolled_nt_tb;
+
+Table created.
+
+sqlplus>
+sqlplus>--problem 6
+sqlplus>declare
+  2  
+  3  v_classes_va wv.classes_va;
+  4  
+  5  
+  6  
+  7  begin
+  8  
+  9  insert into student_plus(student#,student_name,major,advisor,enrolled) select student_id,name,dept,advisor,classes_ref_ty() from wv.students;
+ 10  
+ 11  
+ 12  for x in (select student_id,classes from wv.students) loop
+ 13  
+ 14  if x.classes is not null then
+ 15  
+ 16  for y in 1..x.classes.count loop
+ 17  
+ 18  insert into table(select enrolled from student_plus where student#=x.student_id) select ref(w) from classes_ot w where crn=x.classes(y);
+ 19  
+ 20  
+ 21  end loop;
+ 22  
+ 23  end if;
+ 24  
+ 25  
+ 26  end loop;
+ 27  
+ 28  end;
+ 29  /
+
+PL/SQL procedure successfully completed.
+
+sqlplus>--problem 7
+sqlplus>
+sqlplus>select student_name from student_plus s where exists (select 1 from table(select enrolled from student_plus where student#=s.student#) where deref(column_value).crn=45673 or deref(column_value).crn=34228);
+STUDENT_NA
+----------
+Jones
+Sherman
+Hood
+Lee
+Hooker
+
+sqlplus>
+sqlplus>--problem 8
+sqlplus>
+sqlplus>select deref(column_value).coursetitle from table(select enrolled from student_plus where lower(student_name)='sherman');
+DEREF(COLUMN_VALUE).COURS
+-------------------------
+DATABASES
+NORMALIZATION THEORY
+JAVA PROGRAMMING
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 9
+sqlplus>
+sqlplus>select student_name from student_plus where lower(advisor)='vanscoy';
+STUDENT_NA
+----------
+Jones
+Adams
+Hood
+Hooker
+
+sqlplus>
+sqlplus>--problem 10
+sqlplus>
+sqlplus>
+sqlplus>select count(*) from student_plus s where exists (select 1 from table(select enrolled from student_plus where student#=s.student#) where lower(deref(column_value).coursetitle)='linear algebra');
+  COUNT(*)
+----------
+         4
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 11
+sqlplus>
+sqlplus>select major from student_plus where lower(student_name)='adams';
+MAJOR
+--------
+BIOM
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>update student_plus set major='PHYSICS' where lower(student_name)='adams';
+
+1 row updated.
+
+sqlplus>
+sqlplus>
+sqlplus>select major from student_plus where lower(student_name)='adams';
+MAJOR
+--------
+PHYSICS
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 12
+sqlplus>
+sqlplus>create or replace procedure AddClass(p_id  in student_plus.student#%type,p_crn in classes_ot.crn%type) is
+  2  
+  3  
+  4  begin
+  5  
+  6  
+  7  insert into table(select enrolled from student_plus where student#=p_id) select ref(w) from classes_ot w where crn=p_crn;
+  8  
+  9  
+ 10  
+ 11  
+ 12  end AddClass;
+ 13  /
+
+Procedure created.
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--problem 13
+sqlplus>
+sqlplus>declare
+  2  
+  3  v_id student_plus.student#%type;
+  4  
+  5  begin
+  6  
+  7  select student# into v_id from student_plus where lower(student_name)='hood';
+  8  AddClass(v_id,31245);
+  9  
+ 10  
+ 11  
+ 12  
+ 13  end;
+ 14  /
+
+PL/SQL procedure successfully completed.
+
+sqlplus>
+sqlplus>
+sqlplus>--problem 14
+sqlplus>
+sqlplus>
+sqlplus>select deref(column_value).crn from table(select enrolled from student_plus where lower(student_name)='hood');
+DEREF
+-----
+45673
+31245
+
+sqlplus>
+sqlplus>--problem 15
+sqlplus>create or replace procedure DeleteClass(p_id in student_plus.student#%type,p_crn in classes_ot.crn%type) is
+  2  
+  3  begin
+  4  
+  5  delete table(select enrolled from student_plus where student#=p_id) where deref(column_value).crn=p_crn;
+  6  if sql%notfound then
+  7   raise_application_error(-20200,' Student not enrolled in that class ');
+  8  end if;
+  9  
+ 10  
+ 11  
+ 12  
+ 13  
+ 14  end;
+ 15  /
+
+Procedure created.
+
+sqlplus>
+sqlplus>execute DeleteClass('700-123-918',34887)
+BEGIN DeleteClass('700-123-918',34887); END;
+
+*
+ERROR at line 1:
+ORA-20200:  Student not enrolled in that class
+ORA-06512: at "BHRAVURI.DELETECLASS", line 7
+ORA-06512: at line 1
+
+
+sqlplus>--problem 16
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>delete table(select enrolled from student_plus where lower(student_name)='sherman') where deref(column_value).crn=34129;
+
+1 row deleted.
+
+sqlplus>
+sqlplus>--problem 17
+sqlplus>
+sqlplus>select deref(column_value).crn from table(select enrolled from student_plus where lower(student_name)='sherman');
+DEREF
+-----
+34128
+34228
+
+sqlplus>
+sqlplus>--problem 18
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>select student_name from student_plus s where not exists (select 1 from table(select enrolled from student_plus where student#=s.student#));
+STUDENT_NA
+----------
+Adams
+
+sqlplus>
+sqlplus>spool off

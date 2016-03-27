@@ -1,0 +1,368 @@
+sqlplus>@cs440_hw4
+sqlplus>/*
+sqlplus>	Bhargav Sai Krishna, Ravuri
+sqlplus>	CS 440
+sqlplus>	Assignment 4
+sqlplus>	February 9,2015
+sqlplus>*/
+sqlplus>
+sqlplus>set echo on;
+sqlplus>
+sqlplus>--  Problem 1
+sqlplus>
+sqlplus>    select name from mountaineer where id in (select id1 from mountaineer m join friend f on m.id=f.id2 where initcap(m.name)='Gabriel');
+NAME
+------------------------------
+Jordan
+Alexis
+Cassandra
+Andrew
+Jessica
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 2
+sqlplus>
+sqlplus>    select m1.name,m1.grade,m2.name,m2.grade  from ((mountaineer m1 join grade g1 on m1.grade=g1.grade) join likes l1 on l1.id1=m1.id) join (mountaineer m2 join grade g2 on m2.grade=g2.grade) on l1.id2=m2.id where g1.seq>g2.seq  and (g1.seq-1)!=g2.seq;
+NAME                           GR NAME                           GR
+------------------------------ -- ------------------------------ --
+John                           SR Haley                          SO
+
+sqlplus>
+sqlplus>-- problem 3
+sqlplus>
+sqlplus>   select m1.name,m1.grade,m2.name,m2.grade from (mountaineer m1 join likes l1 on l1.id1=m1.id) join mountaineer m2 on l1.id2=m2.id where exists ( select 1 from likes l2  where l2.id1=l1.id2 and l2.id2=l1.id1) and l1.id1>l1.id2;
+NAME                           GR NAME                           GR
+------------------------------ -- ------------------------------ --
+Cassandra                      FR Gabriel                        FR
+Kyle                           SR Jessica                        JR
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 4
+sqlplus>
+sqlplus>    select m1.name,m1.grade,m2.name,m2.grade,m3.name,m3.grade from ((mountaineer m1 join likes l1 on l1.id1=m1.id) join mountaineer m2 on l1.id2=m2.id) join (likes l2 join mountaineer m3 on l2.id2=m3.id) on l1.id2=l2.id1 where l1.id1!=l2.id2;
+NAME                           GR NAME                           GR NAME                           GR
+------------------------------ -- ------------------------------ -- ------------------------------ --
+Andrew                         SO Cassandra                      FR Gabriel                        FR
+Gabriel                        JR Alexis                         JR Kris                           SO
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 5
+sqlplus>
+sqlplus>    select name,grade from mountaineer m1 where not exists (select id from likes where id1=m1.id) and  not exists (select 1 from likes where id2=m1.id) order by grade,name;
+NAME                           GR
+------------------------------ --
+Jordan                         FR
+Tiffany                        FR
+Logan                          SR
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 6
+sqlplus>
+sqlplus>
+sqlplus>   select m1.name,m1.grade,m2.name,m2.grade from (mountaineer m1 join likes l1 on l1.id1=m1.id) join mountaineer m2 on l1.id2=m2.id where not exists (select 1 from likes l2 where l2.id1=l1.id2);
+NAME                           GR NAME                           GR
+------------------------------ -- ------------------------------ --
+Austin                         JR Jordan                         SR
+Brittany                       SO Kris                           SO
+Alexis                         JR Kris                           SO
+John                           SR Haley                          SO
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 7
+sqlplus>
+sqlplus>    select name,grade from mountaineer where id in (( select nvl(f1.id1,0) from (mountaineer m1 join friend f1 on f1.id1=m1.id) join mountaineer m2 on f1.id2=m2.id where m1.grade=m2.grade) minus ( select nvl(f2.id1,0) from (mountaineer m3 join friend f2 on f2.id1=m3.id) join mountaineer m4 on f2.id2=m4.id where m3.grade!=m4.grade)) order by grade,name;
+NAME                           GR
+------------------------------ --
+Jordan                         FR
+Gabriel                        JR
+Brittany                       SO
+Haley                          SO
+Kris                           SO
+John                           SR
+Logan                          SR
+
+7 rows selected.
+
+sqlplus>
+sqlplus>--  Problem 8
+sqlplus>
+sqlplus>  select name,grade from mountaineer where id in (( select nvl(f1.id1,0) from (mountaineer m1 join friend f1 on f1.id1=m1.id) join mountaineer m2 on f1.id2=m2.id where m1.grade!=m2.grade) minus ( select nvl(f2.id1,0) from (mountaineer m3 join friend f2 on f2.id1=m3.id) join mountaineer m4 on f2.id2=m4.id where m3.grade=m4.grade));
+NAME                           GR
+------------------------------ --
+Austin                         JR
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 9
+sqlplus>
+sqlplus>   select m1.name,m1.grade,m2.name,m2.grade,m3.name,m3.grade from (((likes l1 join mountaineer m1 on l1.id1=m1.id) join mountaineer m2 on l1.id2=m2.id) join (friend f1 join mountaineer m3 on f1.id2=m3.id) on l1.id1=f1.id1) join friend f2 on l1.id2=f2.id1	where not exists (select 1 from friend where id1=l1.id1 and id2=l1.id2) and f1.id2=f2.id2;
+NAME                           GR NAME                           GR NAME                           GR
+------------------------------ -- ------------------------------ -- ------------------------------ --
+Andrew                         SO Cassandra                      FR Gabriel                        FR
+Austin                         JR Jordan                         SR Andrew                         SO
+Austin                         JR Jordan                         SR Kyle                           SR
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 10
+sqlplus>
+sqlplus>
+sqlplus>    select 'Difference between the # of Students in the school and the # of different first names is '|| (count(id)-count(distinct name)) as "Student count with same name" from mountaineer;
+Student count with same name
+---------------------------------------------------------------------------------------------------------------------------------
+Difference between the # of Students in the school and the # of different first names is 2
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 11
+sqlplus>
+sqlplus>    select 'Average # of friends per student is '||avg(count(id1)) as Average  from mountaineer m left join friend f on m.id=f.id1 group by id;
+AVERAGE
+----------------------------------------------------------------------------
+Average # of friends per student is 2.5
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 12
+sqlplus>
+sqlplus>    select 'Number of friends who are friends with cassandra or are friends of friends of cassandra are '|| (count(distinct f1.id1)+count(distinct f1.id2)) as " Friend Count " from ( friend f1 join mountaineer m1 on f1.id1=m1.id ) join (friend f2 join mountaineer m2 on f2.id2=m2.id) on f1.id2=f2.id1 where lower(m2.name)='cassandra' and lower(m1.name)!='cassandra';
+ Friend Count
+------------------------------------------------------------------------------------------------------------------------------------
+Number of friends who are friends with cassandra or are friends of friends of cassandra are 7
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 13
+sqlplus>
+sqlplus>
+sqlplus>    select name,grade from  mountaineer where id in (select nvl(id2,0) from likes group by id2 having count(distinct id1)>1);
+NAME                           GR
+------------------------------ --
+Kris                           SO
+Cassandra                      FR
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 14
+sqlplus>
+sqlplus>    select name,grade from mountaineer where id in ( select id1 from friend f1 group by f1.id1 having count(f1.id1)=( select max(count(id1)) from friend f2 group by f2.id1));
+NAME                           GR
+------------------------------ --
+Andrew                         SO
+Alexis                         JR
+
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 15
+sqlplus>
+sqlplus>   select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         FR
+      1689 Gabriel                        FR
+      1381 Tiffany                        FR
+      1709 Cassandra                      FR
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+      1247 Alexis                         JR
+      1316 Austin                         JR
+      1911 Gabriel                        JR
+      1501 Jessica                        JR
+      1304 Jordan                         SR
+      1025 John                           SR
+      1934 Kyle                           SR
+      1661 Logan                          SR
+
+16 rows selected.
+
+sqlplus>
+sqlplus>   update mountaineer m set grade=( select grade from grade where seq=((select seq from grade where grade=m.grade)+1));
+
+16 rows updated.
+
+sqlplus>
+sqlplus>   select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         SO
+      1689 Gabriel                        SO
+      1381 Tiffany                        SO
+      1709 Cassandra                      SO
+      1101 Haley                          JR
+      1782 Andrew                         JR
+      1468 Kris                           JR
+      1641 Brittany                       JR
+      1247 Alexis                         SR
+      1316 Austin                         SR
+      1911 Gabriel                        SR
+      1501 Jessica                        SR
+      1304 Jordan                         GR
+      1025 John                           GR
+      1934 Kyle                           GR
+      1661 Logan                          GR
+
+16 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 16
+sqlplus>
+sqlplus>
+sqlplus>    delete from mountaineer where lower(grade)='gr';
+
+4 rows deleted.
+
+sqlplus>
+sqlplus>
+sqlplus>    select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         SO
+      1689 Gabriel                        SO
+      1381 Tiffany                        SO
+      1709 Cassandra                      SO
+      1101 Haley                          JR
+      1782 Andrew                         JR
+      1468 Kris                           JR
+      1641 Brittany                       JR
+      1247 Alexis                         SR
+      1316 Austin                         SR
+      1911 Gabriel                        SR
+      1501 Jessica                        SR
+
+12 rows selected.
+
+sqlplus>
+sqlplus>--  Problem 17
+sqlplus>
+sqlplus>    delete from friend f where not exists (select 1 from mountaineer where id=f.id1) or not exists ( select 1 from mountaineer where id=f.id2);
+
+12 rows deleted.
+
+sqlplus>
+sqlplus>    delete from likes l where not exists ( select 1 from mountaineer where id=l.id1) or not exists ( select 1 from mountaineer where id=l.id2);
+
+4 rows deleted.
+
+sqlplus>
+sqlplus>
+sqlplus>   (select 'Friend Count '|| count(*) as count from friend ) union ( select 'Likes Count '|| count(*) as count from likes);
+COUNT
+-----------------------------------------------------
+Friend Count 28
+Likes Count 6
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--select * from friend;
+sqlplus>
+sqlplus>--select * from likes;
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>--  Problem 18
+sqlplus>
+sqlplus>
+sqlplus>insert into friend (id1,id2) select f1.id1,f2.id2 from friend f1 join friend f2 on f1.id2=f2.id1 where f1.id1!=f2.id2 and not exists (select 1 from friend f3 where f3.id1=f1.id1 and f3.id2=f2.id2);
+
+32 rows created.
+
+sqlplus>
+sqlplus>
+sqlplus>select * from friend;
+       ID1        ID2
+---------- ----------
+      1510       1381
+      1510       1689
+      1689       1709
+      1381       1247
+      1709       1247
+      1689       1782
+      1782       1468
+      1782       1316
+      1468       1101
+      1468       1641
+      1101       1641
+      1247       1911
+      1247       1501
+      1911       1501
+      1381       1510
+      1689       1510
+      1709       1689
+      1247       1381
+      1247       1709
+      1782       1689
+      1468       1782
+      1316       1782
+      1101       1468
+      1641       1468
+      1641       1101
+      1911       1247
+      1501       1247
+      1501       1911
+      1247       1510
+      1101       1782
+      1510       1709
+      1381       1689
+      1501       1381
+      1689       1247
+      1689       1381
+      1381       1911
+      1782       1510
+      1381       1501
+      1709       1510
+      1911       1381
+      1782       1641
+      1468       1689
+      1689       1468
+      1510       1247
+      1709       1911
+      1247       1689
+      1689       1316
+      1709       1501
+      1316       1468
+      1501       1709
+      1641       1782
+      1709       1782
+      1510       1782
+      1782       1101
+      1782       1709
+      1911       1709
+      1468       1316
+      1709       1381
+      1381       1709
+      1316       1689
+
+60 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>spool off

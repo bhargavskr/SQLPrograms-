@@ -1,0 +1,19 @@
+ java -cp .:ojdbc7.jar example/JdbcBaseBall
+ Object Created
+ Object Table Created
+ Primary Key Created
+ Not Null Constraint on league Created
+ Not Null Constraint on Name Created
+ Object Table Populated
+Hank Sauer from Chicago Cubs in 1952 and  is a OF in NL
+ Top 10 cities with Highest number of MVP's
+New York Yankees
+St. Louis Cardinals
+Detroit Tigers
+Cincinnati Reds
+Boston Red Sox
+Chicago Cubs
+San Francisco Giants
+Pittsburgh Pirates
+Brooklyn Dodgers
+Oakland Athletics

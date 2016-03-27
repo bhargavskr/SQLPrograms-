@@ -1,0 +1,823 @@
+sqlplus>@hw8_cs440
+sqlplus>-- Bhargav Sai Krishna, Ravuri
+sqlplus>-- CS 440
+sqlplus>-- Assignment 8
+sqlplus>-- April 6, 2015
+sqlplus>set serveroutput on
+sqlplus>alter table friend drop constraint fk_id1_friend;
+
+Table altered.
+
+sqlplus>alter table friend drop constraint fk_id2_friend;
+
+Table altered.
+
+sqlplus>alter table likes drop constraint fk_id1_likes;
+
+Table altered.
+
+sqlplus>alter table likes drop constraint fk_id2_likes;
+
+Table altered.
+
+sqlplus>alter table mountaineer drop constraint pk_id_mount;
+
+Table altered.
+
+sqlplus>drop trigger mount_insert_like;
+
+Trigger dropped.
+
+sqlplus>drop trigger mount_grade_null;
+
+Trigger dropped.
+
+sqlplus>drop trigger friend_symme;
+
+Trigger dropped.
+
+sqlplus>drop trigger mount_adv_one;
+
+Trigger dropped.
+
+sqlplus>drop trigger like_no_friend;
+
+Trigger dropped.
+
+sqlplus>drop trigger mount_grad_del;
+
+Trigger dropped.
+
+sqlplus>drop function Likers;
+
+Function dropped.
+
+sqlplus>drop procedure Hermitify;
+
+Procedure dropped.
+
+sqlplus>drop type friend_va;
+
+Type dropped.
+
+sqlplus>-- Problem 1
+sqlplus>
+sqlplus>create or replace type friend_va as varray(15) of varchar2(15);
+  2  /
+
+Type created.
+
+sqlplus>
+sqlplus>create or replace function Likers(p_crn mountaineer.id%type) return friend_va is
+  2  
+  3  v_friend_va friend_va;
+  4  v_name mountaineer.name%type;
+  5  
+  6  begin
+  7  
+  8  for x in (select id1 from likes where id2=p_crn) loop
+  9  
+ 10  
+ 11  
+ 12  	 select name into v_name from mountaineer where id=x.id1;
+ 13  	 if v_friend_va is null then
+ 14  	     v_friend_va:=friend_va(v_name);
+ 15  	 elsif v_friend_va.count=v_friend_va.limit then
+ 16  	       raise_application_error(-20100,'Not a Student');
+ 17  	 else
+ 18  	     v_friend_va.extend;
+ 19  	     v_friend_va(v_friend_va.count):=v_name;
+ 20  	 end if;
+ 21  
+ 22  end loop;
+ 23  
+ 24  return v_friend_va;
+ 25  
+ 26  end;
+ 27  /
+
+Function created.
+
+sqlplus>
+sqlplus>select * from likes where id2=any(select id from mountaineer where lower(grade)='fr');
+       ID1        ID2
+---------- ----------
+      1709       1689
+      1689       1709
+      1782       1709
+
+sqlplus>
+sqlplus>
+sqlplus>select id,name,Likers(id) from mountaineer where lower(grade)='fr';
+        ID NAME
+---------- ------------------------------
+LIKERS(ID)
+--------------------------------------------------------------------------------------------------------------------------------------------
+      1510 Jordan
+
+
+      1689 Gabriel
+FRIEND_VA('Cassandra')
+
+      1381 Tiffany
+
+
+      1709 Cassandra
+FRIEND_VA('Gabriel', 'Andrew')
+
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 2
+sqlplus>
+sqlplus>
+sqlplus>create or replace procedure Hermitify(p_crn in mountaineer.id%type) is
+  2  
+  3  begin
+  4  
+  5  delete from friend where id1=p_crn or id2=p_crn;
+  6  delete from likes where id1=p_crn or id2=p_crn;
+  7  
+  8  end;
+  9  /
+
+Procedure created.
+
+sqlplus>
+sqlplus>select * from friend where id1=1782 or id2=1782;
+       ID1        ID2
+---------- ----------
+      1689       1782
+      1782       1468
+      1782       1316
+      1782       1304
+      1782       1689
+      1468       1782
+      1316       1782
+      1304       1782
+
+8 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>select * from likes where id1=1782 or id2=1782;
+       ID1        ID2
+---------- ----------
+      1782       1709
+
+sqlplus>
+sqlplus>execute Hermitify(1782);
+
+PL/SQL procedure successfully completed.
+
+sqlplus>
+sqlplus>select * from friend where id1=1782 or id2=1782;
+
+no rows selected
+
+sqlplus>
+sqlplus>select * from likes where id1=1782 or id2=1782;
+
+no rows selected
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from friend  where id1=1782 or id2=1782;
+       ID1        ID2
+---------- ----------
+      1689       1782
+      1782       1468
+      1782       1316
+      1782       1304
+      1782       1689
+      1468       1782
+      1316       1782
+      1304       1782
+
+8 rows selected.
+
+sqlplus>
+sqlplus>select * from likes  where id1=1782 or id2=1782;
+       ID1        ID2
+---------- ----------
+      1782       1709
+
+sqlplus>
+sqlplus>-- Problem 3
+sqlplus>
+sqlplus>create or replace trigger mount_insert_like before insert on mountaineer for each row
+  2  
+  3  begin
+  4  
+  5  	     for x1 in (select id from mountaineer where grade=:new.grade) loop
+  6  
+  7  	     insert into likes values(:new.id,x1.id);
+  8  
+  9  	     end loop;
+ 10  
+ 11  end;
+ 12  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>select * from mountaineer where lower(grade)='so';
+        ID NAME                           GR
+---------- ------------------------------ --
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+
+sqlplus>
+sqlplus>select * from likes where id1=1000;
+
+no rows selected
+
+sqlplus>
+sqlplus>insert into mountaineer values(1000,'Me','SO');
+
+1 row created.
+
+sqlplus>
+sqlplus>select * from mountaineer where lower(grade)='so';
+        ID NAME                           GR
+---------- ------------------------------ --
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+      1000 Me                             SO
+
+sqlplus>
+sqlplus>select * from likes  where id1=1000;
+       ID1        ID2
+---------- ----------
+      1000       1101
+      1000       1782
+      1000       1468
+      1000       1641
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from mountaineer where lower(grade)='so';
+        ID NAME                           GR
+---------- ------------------------------ --
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+
+sqlplus>
+sqlplus>select * from likes  where id1=1000;
+
+no rows selected
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 4
+sqlplus>
+sqlplus>
+sqlplus>create or replace trigger mount_grade_null before insert on mountaineer for each row when(new.grade is null)
+  2  
+  3  begin
+  4  
+  5  :new.grade:='FR';
+  6  
+  7  end;
+  8  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>
+sqlplus>insert into mountaineer(id,name) values (1001,'Me');
+
+1 row created.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1001;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1001 Me                             FR
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1001;
+
+no rows selected
+
+sqlplus>
+sqlplus>insert into mountaineer (id,name,grade) values (1001,'Me','');
+
+1 row created.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1001;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1001 Me                             FR
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1001;
+
+no rows selected
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 5
+sqlplus>create or replace trigger friend_symme for insert or update or delete on friend compound trigger
+  2  
+  3  type friend_ty is table of friend%rowtype index by binary_integer;
+  4  v_newfriend_ty friend_ty;
+  5  v_oldfriend_ty friend_ty;
+  6  v_index number:=0;
+  7  
+  8  
+  9  BEFORE EACH ROW IS
+ 10  BEGIN
+ 11  
+ 12  
+ 13  if INSERTING or UPDATING then
+ 14  v_index:=v_newfriend_ty.count+1;
+ 15  v_newfriend_ty(v_index).id1:=:new.id1;
+ 16  v_newfriend_ty(v_index).id2:=:new.id2;
+ 17  end if;
+ 18  
+ 19  if UPDATING or DELETING then
+ 20   v_index:=v_oldfriend_ty.count+1;
+ 21  v_oldfriend_ty(v_index).id1:=:old.id1;
+ 22  v_oldfriend_ty(v_index).id2:=:old.id2;
+ 23  end if;
+ 24  
+ 25  END BEFORE EACH ROW;
+ 26  
+ 27  AFTER STATEMENT IS
+ 28  BEGIN
+ 29  
+ 30  if INSERTING then
+ 31  
+ 32  	     for cntr in 1..v_newfriend_ty.count loop
+ 33  
+ 34  
+ 35  		     update friend set id1=v_newfriend_ty(cntr).id2,id2=v_newfriend_ty(cntr).id1 where id1=v_newfriend_ty(cntr).id2 and id2=v_newfriend_ty(cntr).id1;
+ 36  		     if sql%notfound then
+ 37  		     insert into friend(id1,id2) values (v_newfriend_ty(cntr).id2,v_newfriend_ty(cntr).id1);
+ 38  		     end if;
+ 39  	     end loop;
+ 40  
+ 41  v_newfriend_ty.delete;
+ 42  end if;
+ 43  
+ 44  If UPDATING then
+ 45  
+ 46  
+ 47  	     for cntr in 1..v_newfriend_ty.count loop
+ 48  
+ 49  		 if v_newfriend_ty(cntr).id1!=v_oldfriend_ty(cntr).id1 or v_newfriend_ty(cntr).id2!=v_oldfriend_ty(cntr).id2 then
+ 50  			  update friend set id1=v_newfriend_ty(cntr).id2,id2=v_newfriend_ty(cntr).id1 where id1=v_oldfriend_ty(cntr).id2 and id2=v_oldfriend_ty(cntr).id1;
+ 51  			  continue when sql%notfound;
+ 52  		 end if;
+ 53  
+ 54  	     end loop;
+ 55  
+ 56  v_newfriend_ty.delete;
+ 57  v_oldfriend_ty.delete;
+ 58  end if;
+ 59  
+ 60  if DELETING then
+ 61  
+ 62  	for cntr in 1..v_oldfriend_ty.count loop
+ 63  
+ 64  	  delete friend where id1=v_oldfriend_ty(cntr).id2 and id2=v_oldfriend_ty(cntr).id1;
+ 65  	  continue when sql%notfound;
+ 66  
+ 67  	end loop;
+ 68  
+ 69  v_oldfriend_ty.delete;
+ 70  
+ 71  end if;
+ 72  
+ 73  exception
+ 74  when others then
+ 75  v_newfriend_ty.delete;
+ 76  v_oldfriend_ty.delete;
+ 77  raise;
+ 78  
+ 79  END AFTER STATEMENT;
+ 80  
+ 81  
+ 82  end friend_symme;
+ 83  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>insert into friend(id1,id2) values(1,2);
+
+1 row created.
+
+sqlplus>
+sqlplus>select * from friend where id1=1 or id2=1;
+       ID1        ID2
+---------- ----------
+         1          2
+         2          1
+
+sqlplus>
+sqlplus>update friend set id1=3 where id1=1 and id2=2;
+
+1 row updated.
+
+sqlplus>
+sqlplus>select * from friend  where id1=2 or id2=2;
+       ID1        ID2
+---------- ----------
+         3          2
+         2          3
+
+sqlplus>
+sqlplus>select * from friend  where id1=2 or id2=2;
+       ID1        ID2
+---------- ----------
+         3          2
+         2          3
+
+sqlplus>
+sqlplus>delete friend where id1=2 and id2=3;
+
+1 row deleted.
+
+sqlplus>
+sqlplus>select * from friend  where id1=2 or id2=2;
+
+no rows selected
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from friend where id1=2 or id2=2;
+
+no rows selected
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 6
+sqlplus>create or replace package pk as
+  2  
+  3  type flag_ty is table of number index by binary_integer;
+  4  v_flag_ty flag_ty;
+  5  end pk;
+  6  /
+
+Package created.
+
+sqlplus>
+sqlplus>create or replace trigger mount_adv_one for update of grade on mountaineer compound trigger
+  2  
+  3  type r_grade_ty is record(new_grade mountaineer.grade%type,old_grade mountaineer.grade%type,id mountaineer.id%type);
+  4  type stud_ty is table of r_grade_ty index by binary_integer;
+  5  v_stud_ty stud_ty;
+  6  
+  7  v_index number:=0;
+  8  
+  9  AFTER EACH ROW IS
+ 10  BEGIN
+ 11  
+ 12  
+ 13  v_index:=v_stud_ty.count+1;
+ 14  v_stud_ty(v_index).old_grade:=:old.grade;
+ 15  v_stud_ty(v_index).new_grade:=:new.grade;
+ 16  v_stud_ty(v_index).id:=:new.id;
+ 17  pk.v_flag_ty(:new.id):=1;
+ 18  
+ 19  
+ 20  END AFTER EACH ROW;
+ 21  
+ 22  AFTER STATEMENT IS
+ 23  BEGIN
+ 24  
+ 25  for cntr in 1..v_stud_ty.count loop
+ 26  
+ 27  	  for x in (select id1 from friend where id2=v_stud_ty(cntr).id) loop
+ 28  
+ 29  		   if pk.v_flag_ty.exists(x.id1) then
+ 30  		      continue when pk.v_flag_ty(x.id1)=1;
+ 31  		      update mountaineer m set grade=(select grade from grade where seq=((select seq from grade where grade=m.grade)+1)) where id=x.id1;
+ 32  		   else
+ 33  		      pk.v_flag_ty(x.id1):=0;
+ 34  		      update mountaineer m set grade=(select grade from grade where seq=((select seq from grade where grade=m.grade)+1)) where id=x.id1;
+ 35  		   end if;
+ 36  	  end loop;
+ 37  
+ 38  end loop;
+ 39  
+ 40  v_stud_ty.delete;
+ 41  exception
+ 42  when others then
+ 43  v_stud_ty.delete;
+ 44  raise;
+ 45  
+ 46  END AFTER STATEMENT;
+ 47  
+ 48  
+ 49  end mount_adv_one;
+ 50  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>show errors
+No errors.
+sqlplus>
+sqlplus>begin
+  2  
+  3  pk.v_flag_ty.delete;
+  4  end;
+  5  /
+
+PL/SQL procedure successfully completed.
+
+sqlplus>
+sqlplus>
+sqlplus>select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         FR
+      1689 Gabriel                        FR
+      1381 Tiffany                        FR
+      1709 Cassandra                      FR
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+      1247 Alexis                         JR
+      1316 Austin                         JR
+      1911 Gabriel                        JR
+      1501 Jessica                        JR
+      1304 Jordan                         SR
+      1025 John                           SR
+      1934 Kyle                           SR
+      1661 Logan                          SR
+
+16 rows selected.
+
+sqlplus>
+sqlplus>update mountaineer set grade='SO' where id=1381;
+
+1 row updated.
+
+sqlplus>
+sqlplus>select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         SO
+      1689 Gabriel                        SO
+      1381 Tiffany                        SO
+      1709 Cassandra                      SO
+      1101 Haley                          JR
+      1782 Andrew                         JR
+      1468 Kris                           JR
+      1641 Brittany                       JR
+      1247 Alexis                         SR
+      1316 Austin                         SR
+      1911 Gabriel                        SR
+      1501 Jessica                        SR
+      1304 Jordan                         GR
+      1025 John                           GR
+      1934 Kyle                           GR
+      1661 Logan                          GR
+
+16 rows selected.
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from mountaineer;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1510 Jordan                         FR
+      1689 Gabriel                        FR
+      1381 Tiffany                        FR
+      1709 Cassandra                      FR
+      1101 Haley                          SO
+      1782 Andrew                         SO
+      1468 Kris                           SO
+      1641 Brittany                       SO
+      1247 Alexis                         JR
+      1316 Austin                         JR
+      1911 Gabriel                        JR
+      1501 Jessica                        JR
+      1304 Jordan                         SR
+      1025 John                           SR
+      1934 Kyle                           SR
+      1661 Logan                          SR
+
+16 rows selected.
+
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 7
+sqlplus>
+sqlplus>alter table mountaineer modify id constraint pk_id_mount primary key deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table friend modify id1 constraint fk_id1_friend references mountaineer(id) on delete cascade deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table friend modify id2 constraint fk_id2_friend references mountaineer(id) on delete cascade deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table likes modify id1 constraint fk_id1_likes references mountaineer(id) on delete cascade deferrable initially immediate;
+
+Table altered.
+
+sqlplus>alter table likes modify id2 constraint fk_id2_likes references mountaineer(id) on delete cascade deferrable initially immediate;
+
+Table altered.
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>create or replace trigger mount_grad_del after update of grade on mountaineer
+  2  
+  3  begin
+  4  
+  5  	     delete mountaineer where grade='GR';
+  6  
+  7  end;
+  8  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>
+sqlplus>select * from mountaineer where id=1025;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1025 John                           SR
+
+sqlplus>select * from likes  where id1=1025  or id2=1025;
+       ID1        ID2
+---------- ----------
+      1025       1101
+
+sqlplus>select * from friend where id1=1025  or id2=1025;
+       ID1        ID2
+---------- ----------
+      1661       1025
+      1025       1661
+
+sqlplus>
+sqlplus>update mountaineer set grade='GR' where id=1025;
+
+1 row updated.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1025;
+
+no rows selected
+
+sqlplus>select * from likes  where id1=1025  or id2=1025;
+
+no rows selected
+
+sqlplus>select * from friend where id1=1025  or id2=1025;
+
+no rows selected
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from mountaineer where id=1025;
+        ID NAME                           GR
+---------- ------------------------------ --
+      1025 John                           SR
+
+sqlplus>select * from likes  where id1=1025  or id2=1025;
+       ID1        ID2
+---------- ----------
+      1025       1101
+
+sqlplus>select * from friend where id1=1025  or id2=1025;
+       ID1        ID2
+---------- ----------
+      1661       1025
+      1025       1661
+
+sqlplus>
+sqlplus>
+sqlplus>
+sqlplus>-- Problem 8
+sqlplus>create or replace trigger like_no_friend before update of id2 on likes for each row
+  2  
+  3  begin
+  4  
+  5  	 update friend set id1=:new.id2,id2=:old.id2 where id1=:new.id2 and id2=:old.id2;
+  6  	 if sql%found then
+  7  	    delete friend f where id1=:new.id2 and id2=:old.id2;
+  8  	 end if;
+  9  
+ 10  
+ 11  
+ 12  end;
+ 13  /
+
+Trigger created.
+
+sqlplus>
+sqlplus>select * from likes where id1=1689;
+       ID1        ID2
+---------- ----------
+      1689       1709
+
+sqlplus>
+sqlplus>select * from friend where id1=1247 or id1=1709;
+       ID1        ID2
+---------- ----------
+      1709       1247
+      1247       1911
+      1247       1501
+      1709       1689
+      1247       1381
+      1247       1709
+
+6 rows selected.
+
+sqlplus>
+sqlplus>update likes set id2=1247 where id1=1689;
+
+1 row updated.
+
+sqlplus>
+sqlplus>select * from likes where id1=1689;
+       ID1        ID2
+---------- ----------
+      1689       1247
+
+sqlplus>
+sqlplus>select * from friend where id1=1247 or id1=1709;
+       ID1        ID2
+---------- ----------
+      1247       1911
+      1247       1501
+      1709       1689
+      1247       1381
+
+sqlplus>
+sqlplus>rollback;
+
+Rollback complete.
+
+sqlplus>
+sqlplus>select * from likes where id1=1689;
+       ID1        ID2
+---------- ----------
+      1689       1709
+
+sqlplus>
+sqlplus>select * from friend where id1=1247 or id1=1709;
+       ID1        ID2
+---------- ----------
+      1709       1247
+      1247       1911
+      1247       1501
+      1709       1689
+      1247       1381
+      1247       1709
+
+6 rows selected.
+
+sqlplus>spool off
